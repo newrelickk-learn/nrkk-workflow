@@ -62,38 +62,74 @@ PHP Laravel + MariaDBで構築された簡易的な申請承認ワークフロ�
 #### 1. 環境要件
 - Docker
 - Docker Compose
+- Python 3.x（テスト実行用）
 
-#### 2. 簡単セットアップ
+#### 2. NewRelic版Docker環境のセットアップとテスト実行
+
+##### 完全なビルドからテストまでの一括実行
 ```bash
 # リポジトリクローン
 git clone <repository-url>
 cd nrkk-workflow
 
-# 一括セットアップスクリプト実行
-./docker-setup.sh
+# NewRelic版Dockerのビルド・起動・テスト実行を一括で行う
+docker-compose -f docker-compose.newrelic.yml build && \
+docker-compose -f docker-compose.newrelic.yml down && \
+docker-compose -f docker-compose.newrelic.yml up -d && \
+test_env/bin/python tests/test_create_applications.py && \
+test_env/bin/python tests/test_approve_applications.py
+```
+
+##### 個別実行する場合
+```bash
+# 1. Dockerイメージのビルド
+docker-compose -f docker-compose.newrelic.yml build
+
+# 2. 既存コンテナの停止・削除
+docker-compose -f docker-compose.newrelic.yml down
+
+# 3. コンテナの起動（バックグラウンド実行）
+docker-compose -f docker-compose.newrelic.yml up -d
+
+# 4. 申請作成テストの実行
+test_env/bin/python tests/test_create_applications.py
+
+# 5. 承認処理テストの実行
+test_env/bin/python tests/test_approve_applications.py
 ```
 
 #### 3. アクセス
 - **アプリケーション**: http://localhost:8080
 - **phpMyAdmin**: http://localhost:8081
 
-#### 4. Docker操作コマンド
+#### 4. テスト環境のセットアップ（初回のみ）
 ```bash
-# コンテナ起動
-docker-compose up -d
+# Python仮想環境の作成
+python3 -m venv test_env
 
-# コンテナ停止
-docker-compose down
+# 仮想環境のアクティベート
+source test_env/bin/activate  # macOS/Linux
+# または
+test_env\Scripts\activate  # Windows
 
+# 必要なパッケージのインストール
+pip install requests python-dotenv
+```
+
+#### 5. その他のDocker操作コマンド
+```bash
 # ログ確認
-docker-compose logs -f
+docker-compose -f docker-compose.newrelic.yml logs -f
 
 # 完全リセット（データベース含む）
-docker-compose down -v && ./docker-setup.sh
+docker-compose -f docker-compose.newrelic.yml down -v
 
 # コンテナ内でコマンド実行
-docker-compose exec app php artisan migrate
-docker-compose exec app php artisan tinker
+docker-compose -f docker-compose.newrelic.yml exec app php artisan migrate
+docker-compose -f docker-compose.newrelic.yml exec app php artisan tinker
+
+# コンテナの状態確認
+docker-compose -f docker-compose.newrelic.yml ps
 ```
 
 ### ローカル環境でのセットアップ
@@ -147,12 +183,29 @@ php artisan serve
 
 ## テストユーザー
 
-| 役割 | メール | パスワード | 説明 |
+### 管理者
+| 役割 | 名前 | メール | パスワード |
+|------|------|--------|------------|
+| 管理者 | 管理者 | admin@wf.nrkk.technology | password |
+
+### 申請者（サンプル）
+| 名前 | メール | パスワード | 組織 |
 |------|--------|------------|------|
-| 申請者 | applicant@example.com | password | 申請作成・管理 |
-| 確認者 | reviewer@example.com | password | 申請確認 |
-| 承認者 | approver@example.com | password | 最終承認 |
-| 管理者 | admin@example.com | password | システム全体管理 |
+| 星野和子 | hoshino.kazuko@wf.nrkk.technology | password | テックイノベーション |
+| 笹田純子 | sasada.junko@wf.nrkk.technology | password | テックイノベーション |
+| 斉藤和明 | saito.kazuaki@wf.nrkk.technology | password | グリーンエネルギー |
+| 青木翔太 | aoki.shota@wf.nrkk.technology | password | やまと建設 |
+| 石川由紀 | ishikawa.yuki@wf.nrkk.technology | password | みどり食品工業 |
+
+### 承認者（サンプル）
+| 名前 | メール | パスワード | 組織 |
+|------|--------|------------|------|
+| 中村恵子 | nakamura.keiko@wf.nrkk.technology | password | テックイノベーション |
+| 木村智子 | kimura.tomoko@wf.nrkk.technology | password | グリーンエネルギー |
+| 佐藤太郎 | sato.taro@wf.nrkk.technology | password | みどり食品工業 |
+| 鈴木花子 | suzuki.hanako@wf.nrkk.technology | password | さくら運輸 |
+
+> 💡 **注意**: 全ユーザーのパスワードは `password` です。本番環境では必ず変更してください。
 
 ## 基本的な使用フロー
 
