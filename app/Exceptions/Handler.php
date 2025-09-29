@@ -40,9 +40,28 @@ class Handler extends ExceptionHandler
         'password_confirmation',
     ];
 
-    public function __construct()
+    /**
+     * 安全にユーザーIDを取得するヘルパーメソッド
+     */
+    protected function getUserId(): string
     {
-        parent::__construct(app());
+        try {
+            return auth()->id() ?? 'guest';
+        } catch (\Exception $e) {
+            return 'guest';
+        }
+    }
+
+    /**
+     * 安全にユーザーメールを取得するヘルパーメソッド
+     */
+    protected function getUserEmail(): string
+    {
+        try {
+            return auth()->user()->email ?? 'unknown';
+        } catch (\Exception $e) {
+            return 'unknown';
+        }
     }
 
     /**
@@ -65,7 +84,7 @@ class Handler extends ExceptionHandler
             $e->getMessage(),
             $e->getFile(),
             $e->getLine(),
-            auth()->id() ?? 'guest',
+            $this->getUserId(),
             request()->fullUrl() ?? 'N/A'
         ));
 
@@ -87,8 +106,8 @@ class Handler extends ExceptionHandler
         // ログレベルを notice に下げる
         Log::notice('認証エラー発生', [
             'exception' => $e->getMessage(),
-            'user_id' => auth()->id(),
-            'user_email' => auth()->user()->email ?? 'unknown',
+            'user_id' => $this->getUserId(),
+            'user_email' => $this->getUserEmail(),
             'url' => request()->fullUrl(),
             'method' => request()->method(),
             'ip' => request()->ip(),
@@ -108,7 +127,7 @@ class Handler extends ExceptionHandler
             '例外レンダリング開始 | 例外クラス: %s | メッセージ: %s | ユーザーID: %s | URL: %s | JSON期待: %s',
             get_class($e),
             $e->getMessage(),
-            auth()->id() ?? 'guest',
+            $this->getUserId(),
             $request->fullUrl(),
             $request->expectsJson() ? 'true' : 'false'
         ));
@@ -118,7 +137,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof AuthorizationException) {
             Log::info(sprintf(
                 '認証エラーレスポンス生成 | ユーザーID: %s | JSON期待: %s',
-                auth()->id() ?? 'guest',
+                $this->getUserId(),
                 $request->expectsJson() ? 'true' : 'false'
             ));
 
@@ -160,7 +179,7 @@ class Handler extends ExceptionHandler
         Log::info(sprintf(
             '標準例外レンダリング実行 | 例外クラス: %s | ユーザーID: %s',
             get_class($e),
-            auth()->id() ?? 'guest'
+            $this->getUserId()
         ));
 
         return parent::render($request, $e);
